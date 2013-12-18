@@ -7,7 +7,7 @@ from sets import Set
 import chardet
 import time
 import datetime
-from tianya_html_parser import TianYa_HTML_Parser
+from tianya_html_parser import Baidu_Hot_HTML_Parser
 
 txt_format1 = ['title', 'abstract', 'category', 'author', 'time', 'repost']
 txt_format2 = ['title', 'category', 'author', 'time', 'repost']
