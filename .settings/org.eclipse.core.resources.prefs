@@ -1,0 +1,13 @@
+eclipse.preferences.version=1
+encoding//common/__init__.py=utf8
+encoding//common/classifier/bayes.py=utf8
+encoding//common/segment/__init__.py=utf8
+encoding//common/sentiment/__init__.py=utf8
+encoding//common/similarity/bm25.py=utf8
+encoding//common/summary/textrank.py=utf8
+encoding//common/util/dbhelper.py=utf8
+encoding//common/util/frequency.py=utf8
+encoding//common/util/language.py=utf-8
+encoding//common/util/sentence.py=utf8
+encoding//common/util/stopwords_filter.py=utf8
+encoding//common/util/tnt.py=utf8

@@ -10,13 +10,13 @@ helper function for mysql db
 import sys, os
 import MySQLdb
 
-HIVE_DB_HOST = '172.16.0.188'
-HIVE_DB_PORT = 3316
-HIVE_DB_USER = 'dbwriter'
-HIVE_DB_PASSWD = 'brdwriter'
-HIVE_DB_NAME = 'hadoop_cube'
+IMPRESS_DB_HOST = 'localhost'
+IMPRESS_DB_PORT = 3306
+IMPRESS_DB_USER = 'dbwriter'
+IMPRESS_DB_PASSWD = 'dbwriter'
+IMPRESS_DB_NAME = 'impress'
 
-ENV_INFO = {'pro':('172.16.0.188', 3316, 'impress_cwq', 'impress_cwq', 'impress')}
+ENV_INFO = {'pro':(IMPRESS_DB_HOST, IMPRESS_DB_PORT, IMPRESS_DB_USER, IMPRESS_DB_PASSWD, IMPRESS_DB_NAME)}
 
 class dbhelper(object):
     '''
@@ -63,6 +63,9 @@ class dbhelper(object):
             print "ERROR in excuting sql: %s, error message: %s" % (sql, ex.message)
             return False
         return True
+    
+    def select_db(self, table, ):
+        pass
     
     def excute_sql(self, sql):
         try:
