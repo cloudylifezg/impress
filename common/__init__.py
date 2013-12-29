@@ -1,12 +1,13 @@
 #encoding=utf8
 
 import sys
-from summary.textrank import TextRank
-from util import sentence, stopwords_filter
-import sentiment
-import segment
+import math
 
-swfilter = stopwords_filter.StopWord_Filter()
+from topic import topic
+from util import language
+import sentiment 
+import segment
+import jieba
 
 def f(text):
     sentences = sentence.get_sentences(text)
@@ -23,5 +24,27 @@ def f(text):
         ret.append(sentences[index].strip())
 
 if __name__ == '__main__':
-    print sentiment.classify("林志颖卖“爱碧丽”，方舟子打假，大家很关注，@我们的也很多。经现场检查，位于上海松江、具有生产许可证的“上海葡萄王企业有限公司”与“爱碧丽”签订了商标使用许可合同，“爱碧丽”系列中的胶原蛋白饮料，都是它生产的普通食品。产品本身无害，但普通食品不应宣传美容功效。")
-    
+    kword = segment.st_keyword(u'永城', set(['n', 'z']))
+    topic = topic.Topic(kword)
+    fp = open('/Users/zhanggui/nltk_learn/train_data/weibo.dat', 'rb')
+    #fp = open('/Users/zhanggui/source/impress/common/sentiment/negative_sentence.txt', 'r')
+    #fp = open('/Users/zhanggui/source/impress/common/sentiment/sample_0.1_5.txt', 'r')
+    text = fp.read().rstrip().decode('utf-8').split('\n')
+    document = []
+    for text_str in text:
+        #text_str = t.split('    ')[2]
+        pos = text_str.find('：'.decode('utf-8'))
+        if pos != -1:
+            text_str = text_str[(pos+1):]
+        text_str = language.transfer(text_str)
+        document.append(text_str)
+    i = 0
+    #for doc in document:
+    #    print doc
+    #    i += 1
+    #    print(sentiment.classify(doc))
+    #    if i > 50:
+    #        sys.exit()
+    topic.init_document(document)
+
+

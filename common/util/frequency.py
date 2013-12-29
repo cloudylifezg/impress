@@ -66,7 +66,8 @@ class BaseProb(object):
         return True, self.d[key]
 
     def freq(self, key):
-        return float(self.get(key)[1])/self.total
+        #print "word:%s, p:%s, total:%d" % (key, self.get(key)[1], self.total)
+        return float(self.get(key)[1]+1)/(self.total+1)
 
     def samples(self):
         return self.d.keys()
