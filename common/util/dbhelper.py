@@ -51,7 +51,7 @@ class dbhelper(object):
         return True
     
     def insert_db(self, table, keys, values):
-        sql = "insert ignore into %s (`%s`) values('" % (table, "`,`".join(keys))
+        sql = "insert into %s (`%s`) values('" % (table, "`,`".join(keys))
         for v in values:
             sql += "','".join(v)
             sql += "'),('"
@@ -67,7 +67,6 @@ class dbhelper(object):
     def select_db(self, sql):
         try:
             rows = self.cursor.execute(sql)
-            print rows, sql
             if rows <= 0:
                 return False
             

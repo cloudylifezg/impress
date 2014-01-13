@@ -1,17 +1,22 @@
 #!/usr/local/bin/python
 #encoding=utf8
 
-import os,sys
+import os
 from sets import Set
 from numpy import *
 from gensim import corpora, models, similarities
 import segment
 from idf import idf
 
+class st_keyword(object):
+    def __init__(self, word, flag):
+        self.word = word
+        self.flag = flag
+
 class Topic(object):
     
-    def __init__(self, keyword):
-        self.keyword = keyword
+    def __init__(self):
+        self.keyword = ''
         self.dictionary = None
         self.corpus = None
         self.tfidf = None 
@@ -22,6 +27,9 @@ class Topic(object):
         self.init_topic_top_words = 50
         self.topic_distance = 0.2
         self.init_topic_keyword_rate = 0.5
+        
+    def set_keyword(self, keyword):
+        self.keyword = keyword
         
     def init_document(self, document_list):
         init_document = [segment.top_words(document, self.keyword) for document in document_list]
@@ -43,20 +51,22 @@ class Topic(object):
         #    i += 1
         #for t in self.lsi.print_topics(20, 100):
         #    print "topic: %s" % t
-        #sys.exit()
         self.index = similarities.MatrixSimilarity(self.lsi[self.corpus])
+        
+    def extract_topic(self):
         topics_list = self.lsi.get_topics(self.init_topics, self.init_topic_top_words)
         topics_list = self.extract_topic_keyword(topics_list)
         topic_info = self.recurse_topic(topics_list)
         
-        for index, topic in enumerate(topic_info):
-            sorted_topic_word = sorted(topic['word'].items(), key=lambda k:k[1], reverse=True)
-            for p, word in sorted_topic_word:
-                print "word:%s, p:%s" % (word, p)
-            print "topic #%d, words:%s, document count:%d" % (index, " ".join(topic['word'].keys()), len(topic['document']))
-            for i in topic['document']:
-                print document_list[i]
-                
+        #for index, topic in enumerate(topic_info):
+            #sorted_topic_word = sorted(topic['word'].items(), key=lambda k:k[1], reverse=True)
+            #for p, word in topic['word']:
+                #print "word:%s, p:%s" % (word, p)
+            #print "topic #%d, words:%s, document count:%d" % (index, " ".join(topic['word'].keys()), len(topic['document']))
+            #for i in topic['document']:
+            #    print document_list[i]
+        
+        return topic_info        
         
     def add_document(self, document_list):
         pass
@@ -151,6 +161,9 @@ class Topic(object):
                 else:
                     topic_info[tid]['word'][word] = abs(p)*idf[word]
             index += 1
+        
+        for index, topic in enumerate(topic_info):
+            topic['word'] = sorted(topic['word'].items(), key=lambda k:k[1], reverse=True)
         
         index = 0
         for document in self.lsi[self.corpus_tfidf]:

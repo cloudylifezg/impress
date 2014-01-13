@@ -37,11 +37,6 @@ word_feature['keyword_omit'] = set(['b', 'z', 'r', 'm', 'd', 'p', 'c', 'u', 'e',
 TOP_WORD_RATE = 1.00
 TOP_WORD_NUM = 20
 
-class st_keyword(object):
-    def __init__(self, word, flag):
-        self.word = word
-        self.flag = flag
-
 def seg(text, cut_all=False):
     text = language.transfer(text)
     return jieba.cut(text, cut_all)
