@@ -51,7 +51,7 @@ class dbhelper(object):
         return True
     
     def insert_db(self, table, keys, values):
-        sql = "insert into %s (`%s`) values('" % (table, "`,`".join(keys))
+        sql = "insert ignore into %s (`%s`) values('" % (table, "`,`".join(keys))
         for v in values:
             sql += "','".join(v)
             sql += "'),('"
@@ -77,7 +77,7 @@ class dbhelper(object):
     
     def excute_sql(self, sql):
         try:
-            self.cursor.excute(sql)
+            self.cursor.execute(sql)
             self.conn.commit()
         except MySQLdb.Error, ex:
             print "ERROR in excuting sql: %s, error message: %s" % (sql, ex.message)

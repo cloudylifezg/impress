@@ -3,6 +3,6 @@
 
 import sentiment
 
-sentence = "今天好开心啊！"
+sentence = "今天开心啊！"
 print sentiment.classify(sentence)
 

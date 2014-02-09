@@ -32,7 +32,7 @@ word_feature = {'n':'名词', 'nr':'人名', 'ns':'地名', 'nt':'机构团体�
                 'w':'标点符号',
                 }
 
-word_feature['keyword_omit'] = set(['b', 'z', 'r', 'm', 'd', 'p', 'c', 'u', 'e', 'y', 'o', 'h', 'k', 'w'])
+word_feature['keyword_omit'] = set(['b', 'z', 'r', 'm', 'd', 'p', 'c', 'u', 'y', 'o', 'h', 'k', 'w'])
 
 TOP_WORD_RATE = 1.00
 TOP_WORD_NUM = 20
@@ -48,16 +48,19 @@ def posseg(text):
 def seg_mean_words(text, keyword):
     #words =  [w.word.strip() for w in jieba.posseg.cut(text) if w.word.strip()!="" and w.flag.lower()[0] not in word_feature['keyword_omit']]
     words = []
+    cut_keyword = set(jieba.cut(keyword.word, cut_all=False))
     for w in jieba.posseg.cut(text):
         #关键词词性不对
-        if w.word.strip() == keyword.word:
-            if w.flag.lower()[0] not in keyword.flag:
-                return None
-            else:
-                continue
+        #if w.word.strip() == keyword.word:
+        #    if w.flag.lower()[0] not in keyword.flag:
+        #        return None
+        #    else:
+        #        continue
+        if w.word in cut_keyword:
+            continue
         if w.flag.lower()[0] not in word_feature['keyword_omit'] and len(w.word.strip())>1 and not swfilter.stop_word(w.word.strip()):
             words.append(w.word.strip())
-        
+    
     return words
 
 def top_words(text, keyword, top_num=0, top_rate=TOP_WORD_RATE):

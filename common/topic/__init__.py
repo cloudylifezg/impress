@@ -8,7 +8,7 @@ db = dbhelper.dbhelper()
 topic_model = topic.Topic()
 
 def get_twitter_info(keyword, stime, etime):
-    sql = "select news_id, keywords from impress_news_info where word='%s' and time>='%s' and time<='%s'" % (keyword, stime, etime)
+    sql = "select news_id, abstract from impress_news_info where word='%s' and time>='%s' and time<='%s'" % (keyword, stime, etime)
     #print sql
     ret = db.select_db(sql)
     doc_info = []

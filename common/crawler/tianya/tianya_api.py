@@ -8,13 +8,14 @@ from sets import Set
 import chardet
 import time
 import datetime
-#import re
+import re
 from tianya_html_parser import *
+import unicodedata
 
 txt_format1 = ['title', 'abstract', 'category', 'author', 'time', 'repost']
 txt_format2 = ['title', 'category', 'author', 'time', 'repost']
 
-#total_re = re.compile('.*([0-9]+).*')
+comment_re = re.compile(r"([0-9]+楼)")
 
 class TianYa_Api(object):
     def __init__(self, db=None):
@@ -166,23 +167,36 @@ class TianYa_Api(object):
        
         return 0   
     
-    def extract_post(self, parser):
-        #parser = TianYa_Poster_HTML_Parser()
+    def extract_post(self):
+        parser = TianYa_Poster_HTML_Parser()
         parser.feed(self.content)
-        #parser.close()
         #print "content:%s, detail:%s" % (parser.element['content'].strip(), parser.detail.strip())
-        detail_info = parser.detail.strip().split("\n")
-        if detail_info > 0:
-            click = detail_info[2]
-            pos = click.find('：')
-            if pos != -1:
-                 click = click[(pos+3):]
+        detail_info = parser.detail.strip().replace(' 时间', '\n时间').split("\n")
+        post_info = {}
+        #print parser.detail.strip()
+        if len(detail_info) > 0:
+            for d in detail_info:
+                pos = d.rfind('：')
+                if pos != -1:
+                    post_info[d[0:pos].strip()] = d[(pos+3):].strip()
         
         try:
-            click = int(click)
+            comment = int(post_info['回复']) if '回复' in post_info else 0
+            click = int(post_info['点击']) if '点击' in post_info else 0
+            platform = post_info['来自'] if '来自' in post_info else 'pc'
+            time = post_info['时间'] if '时间' in post_info else '1970-01-01 00:00:00'
         except Exception,ex:
+            comment = 0
             click = 0
-        return (parser.element['content'].strip()[0:3000], click, parser.uid, parser.famous)
+            platform = 'pc'
+            time = ''
+            
+        content = parser.element['content'].strip() if parser.element and 'content' in parser.element else ''
+        uid = parser.uid if parser.uid else '0'
+        famous = parser.famous if parser.famous else '0'
+        
+        parser.close()
+        return (content, click, uid, famous, comment, platform, time)
     
     #http://bbs.tianya.cn/post-free-2366245-1.shtml
     def extract_twitter_info(self, url):
@@ -200,69 +214,131 @@ class TianYa_Api(object):
         
         return (tid, preffix, suffix)
     
-    def process_twitter(self):       
-        #self.result_twitter.reverse()
-        if len(self.result_twitter) == 0:
-            print "no update"
+    #type1， 只抓正文， 2， 同时抓评论数
+    def process_twitter(self, twitters, comment_info={}, type=2, limit=0):
+        if len(twitters) == 0:
             return False
-        news_info = []
-        news_detail = []
-        comment_url = []
-        parser = TianYa_Poster_HTML_Parser()
-        for item in self.result_twitter:
+        self.news_info = {}
+        self.news_detail = []
+        #parser = TianYa_Poster_HTML_Parser()
+        #if type == 2:
+        #    comment_parser = TianYa_Comment_HTML_Parser()
+        for source in twitters:
+            #source = "http://bbs.tianya.cn/post-funinfo-4979418-1.shtml"
             try:
-                cursor = urllib.urlopen(item['url'])
+                cursor = urllib.urlopen(source)
                 self.content = cursor.read()
                 self.__html_decode()
             except Exception,ex:
-                print "get url %s error: %s" % (item['url'], ex)
+                print "get url %s error: %s" % (source, ex)
+                continue
             
-            content, click, uid, famous = self.extract_post(parser)
-            poster_url = self.extract_twitter_info(item['url'])
-            news = ['1', str(poster_url[0]), item['category'], item['author'], self.keyword, self.keyword, str(item['repost']), '0', '0', item['url'], str(item['time']), str(click)]
-            news_info.append(news)
-            detail = [str(poster_url[0]), '1', item['title'], content, item['url'], 'http://www.tianya.cn/' + uid, '', str(item['time']), str(uid), '1', str(famous)]
-            news_detail.append(detail)
-            comment_url.append([poster_url[1], poster_url[2]])
-           
-        parser.close()
-        #print "start to insert info to db"
-        #self.db.insert_db('bak_impress_news_info', ['source_id', 'news_id', 'category', 'author', 'word', 'keywords', 'comment', 'repost', 'like', 'source', 'time', 'read'], news_info)
-        #self.db.insert_db('bak_impress_news_detail', ['doc_id', 'doc_type', 'title', 'content', 'title_url', 'author_homepage', 'ip', 'time', 'uid', 'source_id', 'famous'], news_detail)
-        #for url in comment_url:
-        #    self.crawl_comment(url)
+            content, click, uid, famous, comment, platform, time = self.extract_post()
+            poster_url = self.extract_twitter_info(source)
+            
+            if poster_url[0] in comment_info:
+                detail = [str(poster_url[0]), '1', content, source, 'http://www.tianya.cn/' + uid, '', time, uid, '1', famous, str(click), '0', '0', '0', platform]
+                self.news_detail.append(detail)
+            
+            #if poster_url[0] in comment_info and (comment - comment_info[poster_url[0]]) < 10:
+            #    continue
+            self.news_info[poster_url[0]] = comment
+            if type==2 and comment > 0:
+                page = comment_info[poster_url[0]]/100 + 1 if poster_url[0] in comment_info else 1
+                #total = limit if limit != 0 and limit < comment else comment
+                #print comment, limit
+                while (page-1)*100 < comment:
+                    comment_url = "http://" + poster_url[1] + str(page) + poster_url[2]
+                    print comment_url
+                    #comment_url = "http://bbs.tianya.cn/post-funinfo-4949828-1.shtml"
+                    offset = comment_info[poster_url[0]] + 1 if poster_url[0] in comment_info else 1
+                    self.crawl_comment(comment_url, poster_url[0], page, offset)
+                    page += 1
         
-    def crawl_comment(self, url_info, limit=20):
-        page = 1
-        limit = limit if limit > 0 else 20
+        return self.news_detail, self.news_info
+        
+    def crawl_comment(self, comment_url, doc_id, page=1, offset=1):
         parser = TianYa_Comment_HTML_Parser()
-        while True:
-            comment_url = "http://" + url_info[0] + str(page) + url_info[1]
-            print comment_url
-            try:
-                cursor = urllib.urlopen(comment_url)
-                if cursor.getcode() != 200:
-                    break
-                self.content = cursor.read()
-                self.__html_decode()
-                self.extract_comment(parser, page)
-            except Exception,ex:
-                print "get url %s error: %s" % (comment_url, ex)
-                break
-            page += 1
-    
+        try:
+            cursor = urllib.urlopen(comment_url)
+            if cursor.getcode() != 200:
+                return 
+            self.content = cursor.read()
+            self.__html_decode()
+            #self.extract_comment(parser)
+            parser.feed(self.content)
+            if len(parser.links) > 0:
+                index = (page-1)*100+1
+                for link in parser.links:
+                    if 'content' not in link or index==1 or index <= offset:
+                        index += 1
+                        continue
+                    
+                    parts = link['content'].strip().split("\n")
+                    
+                    post_info = {}
+                    for p in parts[0:(len(parts)-1)]:
+                        info = p.strip()
+                        pos = info.rfind('：')
+                        if pos != -1:
+                            item = info.replace(' 时间', '\n时间').split("\n")
+                            for i in item:
+                                n_pos = i.rfind('：')
+                                post_info[i[0:n_pos].strip()] = i[(n_pos+3):].strip()
+                    
+                    time = post_info['时间'] if '时间' in post_info else '1970-01-01 00:00:00'
+                    platform = post_info['来自'] if '来自' in post_info else 'pc'
+                            
+                    try:
+                        uid = link['uid'] if 'uid' in link else '0'
+                    except Exception, ex:
+                        pass
+                    
+                    famous = link['famous'] if 'famous' in link else '0'
+                    
+                    to_index = 1
+                    parts[-1] = parts[-1]
+                    pos = parts[-1].find("楼")
+                    content = parts[-1]
+                    if pos != -1:
+                        comment_match = re.findall(comment_re, parts[-1])
+                        w_pos = 0
+                        if comment_match:
+                            match_word = comment_match[-1]
+                            to_index = int(match_word.strip('楼'))
+                            w_pos = parts[-1].rfind(match_word)
+                            if w_pos != -1:
+                                parts[-1] = parts[-1][w_pos:]
+                        if to_index != 1:
+                            if parts[-1].rfind('-----') != -1:
+                                n_pos = parts[-1].rfind('-----')
+                                parts[-1] = parts[-1][n_pos:].strip('- ')
+                            if parts[-1].rfind('=====') != -1:
+                                n_pos = parts[-1].rfind('=====')
+                                parts[-1] = parts[-1][n_pos:].strip('= ')
+                            if parts[-1].find('　　') != -1:
+                                n_pos = parts[-1].find('　　')
+                                parts[-1] = parts[-1][n_pos:].strip('　')
+                    
+                    detail = [str(doc_id), '2', parts[-1].strip().replace("'", "").replace("\\", ""), comment_url, 'http://www.tianya.cn/' + uid, '', time, uid, '1', famous, '0', '0', str(index), str(to_index), 'pc']
+                    self.news_detail.append(detail) 
+                    index += 1
+                    
+        except Exception,ex:
+            print "get url %s error: %s" % (comment_url, ex)
+        
         parser.close()
         
-    def extract_comment(self, parser, page):   
+    def extract_comment(self, parser):   
          parser.feed(self.content)
-         offset = 0 if page > 1 else 1
          comment_list = []
          if len(parser.links) > 0:
-             for link in parser.links[offset:]:
+             for link in parser.links:
                  if 'content' not in link:
                      continue
+                 
                  parts =  link['content'].strip().split("\n")
-                 item = []
+                 time = ''
                  for p in parts:
                      info = p.strip().strip('举报').strip('回复')
                      if len(info) == 0:
@@ -270,8 +346,7 @@ class TianYa_Api(object):
                      if len(item) < 3:
                          pos = info.rfind("：")
                          if pos != -1:
-                             info = info[pos+3:]
-                     item.append(info)
+                             item[info[:pos]] = info[pos+3:]
                  try:
                      uid = int(link['uid']) if 'uin' in link else 0
                  except Exception, ex:

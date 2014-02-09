@@ -66,6 +66,9 @@
 ： 
 ； 
 ？ 
+http
+com
+cn
 able
 about
 above

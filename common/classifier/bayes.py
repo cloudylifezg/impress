@@ -49,10 +49,13 @@ class Bayes(object):
         tmp = {}
         for k in self.d:
             tmp[k] = 0
+            print k
             for word in x:
+                print word, self.d[k].freq(word)
                 #tmp[k] += log(self.d[k].getsum()) - log(self.total) + log(self.d[k].freq(word))
                 tmp[k] += log(self.d[k].freq(word))
             #print k, tmp[k], " ".join(x)
+        sys.exit()
         ret, prob = 0, 0
         for k in self.d:
             now = 0

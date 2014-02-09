@@ -100,7 +100,7 @@ class TianYa_Poster_HTML_Parser(SGMLParser):
                 for (key, value) in attrs:
                     if not self.uid and key == 'uid':
                         self.uid = value
-                    if key == 'class' and value.find('star'):
+                    if key == 'class' and value.find('star') != -1:
                         self.famous = 1
                         
     def handle_data(self, data):
@@ -149,6 +149,8 @@ class TianYa_Comment_HTML_Parser(SGMLParser):
                 for (key, value) in attrs:
                     if key == 'uid':
                         self.links[-1]['uid'] = value
+                    if key == 'class' and value.find('star') != -1:
+                        self.links[-1]['famous'] = '1'
                         
     def handle_data(self, data):
         if self.links and self.links[-1]['end']>0:
